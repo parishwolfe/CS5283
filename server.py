@@ -81,7 +81,6 @@ while True:
       sock.sendto(fin_ack_header.bits(), addr)
       print("sent fin ack", flush=True)
       header, body, addr = recv_msg()
-      print("head", header)
       if header.ack == 1 and fin_ack_header.seq_num + 1 == header.ack_num:
         update_server_state(States.CLOSED)
 
