@@ -1,0 +1,23 @@
+services:
+
+  server:
+    hostname: server
+    build:
+      context: .
+      dockerfile: dockerfile.server
+    ports: 
+      - 5005
+
+  client:
+    hostname: client
+    build:
+      context: .
+      dockerfile: dockerfile.client
+    ports: 
+      - 5005
+    depends_on:
+      - server
+  
+networks:
+  default:
+    driver: bridge

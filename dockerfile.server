@@ -1,0 +1,5 @@
+FROM python:latest
+
+COPY . .
+
+ENTRYPOINT [ "python3", "server.py" ]

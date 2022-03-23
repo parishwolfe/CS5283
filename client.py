@@ -1,3 +1,4 @@
+print("started")
 from multiprocessing import Value
 from threading import Timer
 from utils import States
@@ -6,10 +7,13 @@ import random
 import socket
 import time
 import utils
+import os
 
 UDP_IP = "127.0.0.1"
+UDP_IP = socket.gethostbyname("server")
 UDP_PORT = 5005
 MSS = 12 # maximum segment size
+print(UDP_IP, UDP_PORT)
 
 sock = socket.socket(socket.AF_INET,    # Internet
                      socket.SOCK_DGRAM) # UDP
@@ -30,6 +34,16 @@ class Client:
       # if you need to send data you will need to append it
       send_udp(syn_header.bits())
       self.update_state(States.SYN_SENT)
+      self.last_received_ack = 0
+      self.last_received_seq_num = 0
+      self.receive_acks()
+      if self.last_received_ack == seq_num + 1:
+        self.update_state(States.SYN_ACK_RECEIVED)
+        ack_header = utils.Header(self.last_received_ack, self.last_received_seq_num + 1, syn = 0, ack = 1)
+        send_udp(ack_header.bits())
+        self.update_state(States.ACK_SENT)
+
+
     else:
       pass
 
@@ -58,16 +72,18 @@ class Client:
   # if not all packets are acked.
   # you are free to implement any mechanism you feel comfortable
   # especially, if you have a better idea ;)
-  def receive_acks_sub_process(self, lst_rec_ack_shared):
+  def receive_acks_sub_process(self, lst_rec_ack_shared, lst_rec_seq_shared):
     while True:
       recv_data, addr = sock.recvfrom(1024)
       header = utils.bits_to_header(recv_data)
+      lst_rec_seq_shared.value = header.seq_num
       if header.ack_num > lst_rec_ack_shared.value:
         lst_rec_ack_shared.value = header.ack_num
   def receive_acks(self):
     # Start receive_acks_sub_process as a process
     lst_rec_ack_shared = Value('i', self.last_received_ack)
-    p = multiprocessing.Process(target=self.receive_acks_sub_process, args=(lst_rec_ack_shared,))
+    lst_rec_seq_shared = Value('i', self.last_received_seq_num)
+    p = multiprocessing.Process(target=self.receive_acks_sub_process, args=(lst_rec_ack_shared, lst_rec_seq_shared,))
     p.start()
     # Wait for 1 seconds or until process finishes
     p.join(1)
@@ -77,6 +93,7 @@ class Client:
       p.join()
     # here you can update your client's instance variables.
     self.last_received_ack = lst_rec_ack_shared.value
+    self.last_received_seq_num = lst_rec_seq_shared.value
 
 # we create a client, which establishes a connection
 client = Client()
