@@ -53,13 +53,8 @@ while True:
       syn = header.syn + 1
       ack = header.ack + 1
       syn_ack_header = utils.Header(seq_number, ack_number, syn, ack)
-      syn_ack_header = syn_ack_header.bits()
-      sock.sendto(syn_ack_header, addr)
-      update_server_state(States.SYN_ACK_SENT)
-      update_server_state(States.LISTEN)
-    if header.ack_num == seq_number + 1 and header.seq_num == ack_number + 1:
-      update_server_state(States.ACK_RECEIVED)
-      update_server_state(States.LISTEN)
+      sock.sendto(syn_ack_header.bits(), addr)
+
       # to be implemented
 
       ### sending message from the server:
@@ -68,8 +63,28 @@ while True:
       #   sock.sendto(your_header_object.bits(), addr)
 
   elif server_state == States.SYN_RECEIVED:
-    pass
-  elif server_state == States.SYN_SENT:
-    pass
+    header, body, addr = recv_msg()
+    print("received ack", flush=True)
+    if header.ack_num == syn_ack_header.seq_num + 1 and header.seq_num == syn_ack_header.ack_num:
+      update_server_state(States.ESTABLISHED)
+
+  elif server_state == States.ESTABLISHED:
+    header, body, addr = recv_msg()
+    print("received_message", header, flush=True)
+    # if header.fin != 1:
+    #   # to be implemented, transfer data
+    #   pass
+    # elif header.fin == 1:
+    if header:
+      update_server_state(States.CLOSE_WAIT)
+      fin_ack_header = utils.Header(utils.rand_int(), header.seq_num + 1, 0, 1)
+      sock.sendto(fin_ack_header.bits(), addr)
+      print("sent fin ack", flush=True)
+      header, body, addr = recv_msg()
+      print("head", header)
+      if header.ack == 1 and fin_ack_header.seq_num + 1 == header.ack_num:
+        update_server_state(States.CLOSED)
+
+
   else:
     pass

@@ -7,14 +7,15 @@ DEBUG = True
 # Refer TCP protocol
 class States(Enum):
 	CLOSED, LISTEN \
-	, SYN_RECEIVED, SYN_SENT, SYN_ACK_RECEIVED, SYN_ACK_SENT, ACK_RECEIVED, ACK_SENT = range(1, 9)
+	, SYN_RECEIVED, SYN_SENT, ESTABLISHED, FIN_WAIT_1, CLOSE_WAIT, FIN_WAIT_2 = range(1, 9)
 
 class Header:
-	def __init__(self, seq_num, ack_num, syn, ack):
+	def __init__(self, seq_num, ack_num, syn, ack): #, fin=0):
 		self.seq_num = seq_num
 		self.ack_num = ack_num
 		self.syn = syn
 		self.ack = ack
+		#self.fin = fin
 
 	def __str__(self):
 		return pretty_bits_print(self.bits().decode())
@@ -23,7 +24,8 @@ class Header:
 		bits += '{0:032b}'.format(self.ack_num)
 		bits += '{0:01b}'.format(self.syn)
 		bits += '{0:01b}'.format(self.ack)
-		bits += '{0:030b}'.format(0)
+		#bits += '{0:030b}'.format(self.fin)
+		bits += '{0:030b}'.format(0) # Not sure what the {0:030b} does
 		if (DEBUG):
 			print(pretty_bits_print(bits))
 		return bits.encode()
@@ -34,7 +36,8 @@ def bits_to_header(bits):
 	ack_num = int(bits[32:64], 2)
 	syn = int(bits[64], 2)
 	ack = int(bits[65], 2)
-	return Header(seq_num, ack_num, syn, ack)
+	#fin = int(bits[66], 2)
+	return Header(seq_num, ack_num, syn, ack) #, fin)
 
 # Returns the bits beyond the first 12 bytes
 # If your header is 12 bytes, it returns the body of a message
@@ -51,6 +54,7 @@ def pretty_bits_print(bits):
 	output = [seq_num+" : seq_num = {0}".format(int(seq_num,2))]
 	output.append(ack_num+" : ack_num = {0}".format(int(ack_num,2)))
 	output.append(row_3+" : syn = {0}, ack = {1}".format(row_3[0], row_3[1]))
+	#output.append(row_3[2:]+" : fin = {0}".format(int(row_3[2:],2)))
 	return '\n'.join(output)
 
 # We rather using small values for number generation

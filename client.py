@@ -38,16 +38,28 @@ class Client:
       self.last_received_seq_num = 0
       self.receive_acks()
       if self.last_received_ack == seq_num + 1:
-        self.update_state(States.SYN_ACK_RECEIVED)
+        print("syn-ack received")
         ack_header = utils.Header(self.last_received_ack, self.last_received_seq_num + 1, syn = 0, ack = 1)
         send_udp(ack_header.bits())
-        self.update_state(States.ACK_SENT)
+        print("ack sent")
+        self.update_state(States.ESTABLISHED)
 
 
     else:
       pass
 
   def terminate(self):
+    fin_header = utils.Header(utils.rand_int(), 0, syn = 0, ack = 0) #, fin = 1)
+    self.update_state(States.FIN_WAIT_1)
+    send_udp(fin_header.bits())
+    self.last_received_ack = 0
+    self.last_received_seq_num = 0
+    self.receive_acks()
+    self.update_state(States.FIN_WAIT_2)
+    final_ack_header = utils.Header(self.last_received_ack, self.last_received_seq_num + 1, syn = 0, ack = 1) #, fin = 1)
+    send_udp(final_ack_header.bits())
+    print("sent final ack")
+    self.update_state(States.CLOSED)
     pass
 
   def update_state(self, new_state):
